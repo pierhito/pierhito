@@ -1,0 +1,36 @@
+name: CI
+
+# Se dispara en cada push a la rama main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descargar el código
+      - uses: actions/checkout@v3
+
+      # 2. Construir la imagen Docker
+      - name: Build Docker image
+        run: docker build -t marcaje-api:${{ github.sha }} .
+
+      # 3. Levantar el contenedor en segundo plano
+      - name: Run API for health-check
+        run: |
+          docker run -d --name api-test -p 8000:8000 marcaje-api:${{ github.sha }}
+          sleep 5
+
+      # 4. Comprobar que responde /health
+      - name: Health-check
+        run: curl --fail http://localhost:8000/health
+
+      # 5. Parar y eliminar el contenedor de prueba
+      - name: Cleanup
+        run: |
+          docker stop api-test
+          docker rm api-test
+
+“Añade pipeline CI”
